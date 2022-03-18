@@ -9,7 +9,7 @@ class Bot : DefaultBWListener() {
     override fun onStart() {
         game = bwClient.game
 
-        game.setLocalSpeed(35);//게임 속도 30이 기본, 토너먼트에선 20
+        game.setLocalSpeed(35)//게임 속도 30이 기본, 토너먼트에선 20
     }
 
     override fun onFrame() {
@@ -20,7 +20,7 @@ class Bot : DefaultBWListener() {
         val myUnits: List<Unit> = game.allUnits
         myUnits.forEach { myUnit ->
             if (myUnit.type == UnitType.Terran_Command_Center && self.minerals() >= 50) {
-                myUnit.train(UnitType.Terran_SCV);
+                myUnit.train(UnitType.Terran_SCV)
             }
 
             if (myUnit.type.isWorker && myUnit.isIdle) {
