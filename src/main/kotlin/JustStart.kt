@@ -1,5 +1,8 @@
+import bot.CommandCenterBot
 import listener.CustomListener
 
 fun main() {
-    CustomListener().start()
+    CustomListener(
+        CommandCenterBot()
+    ).start()
 }

@@ -1,15 +1,23 @@
 package listener
 
+import bot.CommandCenterBot
 import bot.ScvBot
 import bwapi.*
-import bwapi.Unit
+import bwapi.Unit as Unit
+import draw.DrawVisible
 import tile.CustomAnalyseTile
+import util.CodeUtils
 
-class CustomListener: DefaultBWListener() {
+class CustomListener(
+    private val commandCenterBot: CommandCenterBot
+): DefaultBWListener() {
     private val bwClient = BWClient(this)
+    private val codeUtils = CodeUtils()
     private lateinit var game: Game
     private lateinit var customAnalyseTile: CustomAnalyseTile
     private lateinit var scvBot: ScvBot
+    private lateinit var drawVisible: DrawVisible
+    private var buildingScv: Unit? = null
 
     fun start() {
         bwClient.startGame()
@@ -20,64 +28,41 @@ class CustomListener: DefaultBWListener() {
         game.setLocalSpeed(35)//게임 속도 30이 기본, 토너먼트에선 20
         customAnalyseTile = CustomAnalyseTile(game)
         scvBot = ScvBot(game)
+        drawVisible = DrawVisible(game)
     }
 
     override fun onFrame() {
         val self: Player = game.self()
         game.drawTextScreen(10, 10, "Playing as ${self.name} - ${self.race}")
+        game.drawTextScreen(10, 20, "supplyTotal : ${self.supplyTotal()}, supplyUsed : ${self.supplyUsed()}")
 
-        scvBot.gatherMineral()
+        game.allUnits
+            .filter { it.isCompleted }
+            .forEach { myUnit ->
+                drawVisible.worker(myUnit)
+                drawVisible.supplyDepot(myUnit)
+                commandCenterBot.makeScv(myUnit, self)
+                scvBot.gatherMineral(myUnit)
+        }
 
-        /*val myUnits: List<Unit> = game.allUnits
-        myUnits.forEach { myUnit ->
-            if (myUnit.type == UnitType.Terran_Command_Center && self.minerals() >= 50) {
-                myUnit.train(UnitType.Terran_SCV)
+        if (buildingScv == null
+            && self.supplyTotal()-self.supplyUsed() < 6
+            && self.minerals() >= 100) {
+            buildingScv = scvBot.selectBuildSupplyDepotScv()
+        } else {
+            buildingScv?.let {
+                scvBot.buildSupplyDepot(it, self, customAnalyseTile)
             }
-
-            if (myUnit.type.isWorker && myUnit.isIdle) {
-                if ((self.supplyTotal() - self.supplyUsed() < 2) && self.minerals() >= 100) {
-                    val buildTile: TilePosition? = customAnalyseTile.getBuildTile(myUnit, UnitType.Terran_Supply_Depot, self.startLocation)
-                    buildTile.let {
-                        myUnit.build(UnitType.Terran_Supply_Depot, buildTile)
-                    }
-                }
-
-                if (!myUnit.isConstructing) {
-                    var closestMineral: Unit? = null
+        }
+    }
 
 
-                    //find the closest mineral
-                    for (neutralUnit in game.neutral().units) {
-                        game.neutral().units.forEach { neutral ->
-                            if (neutral.type.isMineralField) {
-                                if (closestMineral == null ||
-                                    myUnit.getDistance(neutral) < myUnit.getDistance(closestMineral)) {
-                                    closestMineral = neutral
-                                }
-                            }
-                        }
-                    }
-                    //if a mineral patch was found, send the worker to gather it
-                    closestMineral.let {
-                        myUnit.gather(closestMineral, false)
-                    }
-                }
+    override fun onUnitComplete(unit: Unit?) {
+        unit?.let {
+            if (it.type == UnitType.Terran_Supply_Depot && it.isCompleted) {
+                buildingScv = null
             }
+        }
 
-            if (myUnit.type == UnitType.Terran_SCV) {
-                game.drawTextMap(
-                    myUnit.position.getX(),
-                    myUnit.position.getY(),
-                    "TilePos: ${myUnit.tilePosition} Pos: ${myUnit.position}"
-                )
-                game.drawLineMap(
-                    myUnit.position.getX(),
-                    myUnit.position.getY(),
-                    myUnit.orderTargetPosition.getX(),
-                    myUnit.orderTargetPosition.getY(),
-                    Color.Black
-                )
-            }
-        }*/
     }
 }
