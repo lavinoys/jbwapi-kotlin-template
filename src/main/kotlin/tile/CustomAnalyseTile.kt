@@ -1,71 +1,11 @@
+package tile
+
 import bwapi.*
 import bwapi.Unit
 
-
-class Bot : DefaultBWListener() {
-    private var bwClient = BWClient(this)
-    private lateinit var game: Game
-
-    override fun onStart() {
-        game = bwClient.game
-
-        game.setLocalSpeed(35)//게임 속도 30이 기본, 토너먼트에선 20
-    }
-
-    override fun onFrame() {
-        val self: Player = game.self()
-        game.drawTextScreen(10, 10, "Playing as ${self.name} - ${self.race}")
-        game.drawTextScreen(10, 230, "Resources: ${self.minerals()} minerals, ${self.gas()} gas")
-
-        val myUnits: List<Unit> = game.allUnits
-        myUnits.forEach { myUnit ->
-            if (myUnit.type == UnitType.Terran_Command_Center && self.minerals() >= 50) {
-                myUnit.train(UnitType.Terran_SCV)
-            }
-
-            if (myUnit.type.isWorker && myUnit.isIdle) {
-                var closestMineral: Unit? = null
-
-                //find the closest mineral
-                for (neutralUnit in game.neutral().units) {
-                    if (neutralUnit.type.isMineralField) {
-                        if (closestMineral == null || myUnit.getDistance(neutralUnit) < myUnit.getDistance(
-                                closestMineral
-                            )
-                        ) {
-                            closestMineral = neutralUnit
-                        }
-                    }
-                }
-
-                //if a mineral patch was found, send the worker to gather it
-                if (closestMineral != null) {
-                    myUnit.gather(closestMineral, false)
-                }
-            }
-
-            if (myUnit.type == UnitType.Terran_SCV) {
-                game.drawTextMap(
-                    myUnit.position.getX(),
-                    myUnit.position.getY(),
-                    "TilePos: ${myUnit.tilePosition} Pos: ${myUnit.position}"
-                )
-            }
-            if (self.supplyTotal() - self.supplyUsed() < 8 && self.minerals() >= 100 && myUnit.type == UnitType.Terran_SCV) {
-                if (myUnit.type == UnitType.Terran_SCV) {
-                    getBuildTile(myUnit, UnitType.Terran_Supply_Depot, self.startLocation)?.let {
-                        myUnit.build(UnitType.Terran_Supply_Depot, it)
-                    }
-                    return
-                }
-            }
-        }
-    }
-
-    fun start() {
-        bwClient.startGame()
-    }
-
+class CustomAnalyseTile(
+    private val game: Game
+) {
     // Returns a suitable TilePosition to build a given building type near
     // specified TilePosition aroundTile, or null if not found. (builder parameter is our worker)
     fun getBuildTile(builder: Unit, buildingType: UnitType, aroundTile: TilePosition): TilePosition? {
@@ -117,9 +57,4 @@ class Bot : DefaultBWListener() {
         if (ret == null) game.printf("Unable to find suitable build position for $buildingType")
         return ret
     }
-}
-
-fun main() {
-    val bot = Bot()
-    bot.start()
 }
