@@ -6,17 +6,15 @@ import bwapi.*
 import bwapi.Unit as Unit
 import draw.DrawVisible
 import tile.CustomAnalyseTile
-import util.CodeUtils
 
 class CustomListener(
-    private val commandCenterBot: CommandCenterBot
+    private val drawVisible: DrawVisible,
+    private val commandCenterBot: CommandCenterBot,
+    private val scvBot: ScvBot
 ): DefaultBWListener() {
     private val bwClient = BWClient(this)
-    private val codeUtils = CodeUtils()
     private lateinit var game: Game
     private lateinit var customAnalyseTile: CustomAnalyseTile
-    private lateinit var scvBot: ScvBot
-    private lateinit var drawVisible: DrawVisible
     private var buildingScv: Unit? = null
 
     fun start() {
@@ -27,8 +25,6 @@ class CustomListener(
         game = bwClient.game
         game.setLocalSpeed(35)//게임 속도 30이 기본, 토너먼트에선 20
         customAnalyseTile = CustomAnalyseTile(game)
-        scvBot = ScvBot(game)
-        drawVisible = DrawVisible(game)
     }
 
     override fun onFrame() {
@@ -39,20 +35,15 @@ class CustomListener(
         game.allUnits
             .filter { it.isCompleted }
             .forEach { myUnit ->
-                drawVisible.worker(myUnit)
-                drawVisible.supplyDepot(myUnit)
+                drawVisible.worker(myUnit, game)
+                drawVisible.supplyDepot(myUnit, game)
                 commandCenterBot.makeScv(myUnit, self)
-                scvBot.gatherMineral(myUnit)
-        }
-
-        if (buildingScv == null
-            && self.supplyTotal()-self.supplyUsed() < 6
-            && self.minerals() >= 100) {
-            buildingScv = scvBot.selectBuildSupplyDepotScv()
-        } else {
-            buildingScv?.let {
-                scvBot.buildSupplyDepot(it, self, customAnalyseTile)
-            }
+                scvBot.gatherMineral(myUnit, game)
+                if (buildingScv == null) {
+                    buildingScv = scvBot.selectBuildSupplyDepotScv(myUnit, self)
+                } else {
+                    scvBot.buildSupplyDepot(buildingScv!!, game)
+                }
         }
     }
 

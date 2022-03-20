@@ -2,6 +2,7 @@ package tile
 
 import bwapi.*
 import bwapi.Unit
+import kotlin.math.abs
 
 class CustomAnalyseTile(
     private val game: Game
@@ -9,31 +10,30 @@ class CustomAnalyseTile(
     // Returns a suitable TilePosition to build a given building type near
     // specified TilePosition aroundTile, or null if not found. (builder parameter is our worker)
     fun getBuildTile(builder: Unit, buildingType: UnitType, aroundTile: TilePosition): TilePosition? {
-        val ret: TilePosition? = null
-        var maxDist = 3
+        var maxDist = 6
         val stopDist = 40
 
         // Refinery, Assimilator, Extractor
         if (buildingType.isRefinery) {
-            for (n in game.neutral().units) {
-                if (n.type === UnitType.Resource_Vespene_Geyser &&
-                    Math.abs(n.tilePosition.getX() - aroundTile.getX()) < stopDist &&
-                    Math.abs(n.tilePosition.getY() - aroundTile.getY()) < stopDist
-                ) {
-                    return n.tilePosition
+            game.neutralUnits
+                .filter { it.type == UnitType.Resource_Vespene_Geyser }
+                .filter { abs(it.tilePosition.getX() - aroundTile.getX()) < stopDist
+                        && abs(it.tilePosition.getY() - aroundTile.getY()) < stopDist}
+                .forEach { neutral ->
+                    return neutral.tilePosition
                 }
-            }
         }
-        while (maxDist < stopDist && ret == null) {
+        while (maxDist < stopDist) {
             for (i in aroundTile.getX() - maxDist..aroundTile.getX() + maxDist) {
                 for (j in aroundTile.getY() - maxDist..aroundTile.getY() + maxDist) {
                     if (game.canBuildHere(TilePosition(i, j), buildingType, builder, false)) {
                         // units that are blocking the tile
                         var unitsInWay = false
-                        for (u in game.allUnits) {
-                            if (u.id == builder.id) continue
-                            if (Math.abs(u.tilePosition.getX() - i) < 4 && Math.abs(u.tilePosition.getY() - j) < 4) unitsInWay =
-                                true
+                        game.allUnits.filter { it.id == builder.id }.forEach {
+                            if (abs(it.tilePosition.getX() - i) < 4
+                                && abs(it.tilePosition.getY() - j) < 4) {
+                                unitsInWay = true
+                            }
                         }
                         if (!unitsInWay) {
                             return TilePosition(i, j)
@@ -54,7 +54,7 @@ class CustomAnalyseTile(
             }
             maxDist += 2
         }
-        if (ret == null) game.printf("Unable to find suitable build position for $buildingType")
-        return ret
+        game.printf("Unable to find suitable build position for $buildingType")
+        return null
     }
 }

@@ -4,13 +4,16 @@ import bwapi.Game
 import bwapi.UnitType
 import bwapi.Unit as Unit
 
-class DrawVisible(
-    private val game: Game
-) {
+class DrawVisible {
 
-    fun worker(myUnit: Unit) {
-        if (myUnit.type.isWorker) {
-            drawCommon(myUnit)
+    fun worker(scv: Unit, game: Game) {
+        if (scv.type.isWorker) {
+            game.drawTextMap(
+                scv.position.getX(),
+                scv.position.getY(),
+                "TilePos: ${scv.tilePosition} Pos: ${scv.position} isCarryingMinerals: ${scv.isCarryingMinerals}"
+            )
+
             /*if (myUnit.type.isWorker) {
                 game.drawLineMap(
                     myUnit.position.getX(),
@@ -23,17 +26,13 @@ class DrawVisible(
         }
     }
 
-    fun supplyDepot(myUnit: Unit) {
-        if (myUnit.type == UnitType.Terran_Supply_Depot) {
-            drawCommon(myUnit)
+    fun supplyDepot(supplyDepot: Unit, game: Game) {
+        if (supplyDepot.type == UnitType.Terran_Supply_Depot) {
+            game.drawTextMap(
+                supplyDepot.position.getX(),
+                supplyDepot.position.getY(),
+                "TilePos: ${supplyDepot.tilePosition} Pos: ${supplyDepot.position} isCompleted: ${supplyDepot.isCompleted}"
+            )
         }
-    }
-
-    private fun drawCommon(myUnit: Unit) {
-        game.drawTextMap(
-            myUnit.position.getX(),
-            myUnit.position.getY(),
-            "TilePos: ${myUnit.tilePosition} Pos: ${myUnit.position} isCompleted: ${myUnit.isCompleted}"
-        )
     }
 }
